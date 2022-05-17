@@ -2,9 +2,7 @@ name: Docker Image CI
 concurrency: 
   group: ${{ github.head_ref || github.run_id }}
 
-on:
-  push:
-    branches: [ master ]
+on: workflow_call
 
 jobs:
   docker:
@@ -27,4 +25,4 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: theresnotime/larynx:latest
+          tags: ghcr.io/theresnotime/larynx:latest

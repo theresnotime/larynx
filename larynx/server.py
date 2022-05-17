@@ -74,6 +74,9 @@ parser.add_argument(
     "--port", type=int, default=5002, help="Port of HTTP server (default: 5002)"
 )
 parser.add_argument(
+    "--enable-ui", type=bool, default=False, help="Enable the web UI (default: False)"
+)
+parser.add_argument(
     "--voices-dir",
     help="Directory with <LANGUAGE>/<VOICE> structure (overrides LARYNX_VOICES_DIR env variable)",
 )
@@ -289,8 +292,12 @@ def get_voices() -> typing.Dict[str, typing.Dict[str, typing.Any]]:
     return voices
 
 
+def convert_bool(bool_str: str) -> bool:
+    """Convert HTML input string to boolean"""
+    return bool_str.strip().lower() in {"true", "yes", "on", "1", "enable"}
+
 # -----------------------------------------------------------------------------
-# HTTP Endpoints
+# API Endpoints
 # -----------------------------------------------------------------------------
 
 
@@ -334,11 +341,6 @@ async def app_vocoders() -> Response:
                 )
 
     return jsonify(vocoders)
-
-
-def convert_bool(bool_str: str) -> bool:
-    """Convert HTML input string to boolean"""
-    return bool_str.strip().lower() in {"true", "yes", "on", "1", "enable"}
 
 
 @app.route("/api/tts", methods=["GET", "POST"])
@@ -460,146 +462,45 @@ async def api_download():
 
 
 # -----------------------------------------------------------------------------
+# Web UI
+# -----------------------------------------------------------------------------
 
-# MaryTTS compatibility layer
-@app.route("/process", methods=["GET", "POST"])
-async def api_process():
-    """MaryTTS-compatible /process endpoint"""
-    if request.method == "POST":
-        data = parse_qs((await request.data).decode())
-        text = data.get("INPUT_TEXT", [""])[0]
+if args.enable_ui:
+    _CSS_DIR = _DIR / "css"
+    _IMG_DIR = _DIR / "img"
 
-        if "VOICE" in data:
-            voice = data.get("VOICE", [""])[0]
-        else:
-            voice = data.get("LOCALE", [""])[0]
-    else:
-        text = request.args.get("INPUT_TEXT", "")
-        voice = request.args.get("VOICE", request.args.get("LOCALE", "en-us"))
 
-    # <VOICE>;<VOCODER>
-    vocoder: typing.Optional[str] = None
+    @app.route("/")
+    async def app_index():
+        """Main page."""
+        return await render_template("index.html")
 
-    if ";" in voice:
-        voice, vocoder = voice.split(";", maxsplit=1)
 
-    if vocoder is not None:
-        # Try to interpret as quality
-        vocoder = vocoder.strip()
-        vocoder = VOCODER_QUALITY.get(vocoder, vocoder)
-    else:
-        vocoder = VocoderQuality.HIGH
+    @app.route("/css/<path:filename>", methods=["GET"])
+    async def css(filename) -> Response:
+        """CSS static endpoint."""
+        return await send_from_directory(_CSS_DIR, filename)
 
-    # Assume SSML if text begins with an angle bracket
-    ssml = text.strip().startswith("<")
 
-    wav_bytes = await text_to_wav(
-        text,
-        voice,
-        vocoder=vocoder,
-        denoiser_strength=args.denoiser_strength,
-        noise_scale=args.noise_scale,
-        length_scale=args.length_scale,
-        ssml=ssml,
+    @app.route("/img/<path:filename>", methods=["GET"])
+    async def img(filename) -> Response:
+        """Image static endpoint."""
+        return await send_from_directory(_IMG_DIR, filename)
+
+
+    @app.route("/wav/<path:filename>", methods=["GET"])
+    async def wav(filename) -> Response:
+        """WAV audio static endpoint."""
+        return await send_from_directory(_WAV_DIR, filename)
+
+
+    # Swagger UI
+    api_doc(
+        app,
+        config_path=str(_DIR / "swagger.yaml"),
+        url_prefix="/openapi",
+        title="Larynx"
     )
-
-    return Response(wav_bytes, mimetype="audio/wav")
-
-
-@app.route("/voices", methods=["GET"])
-async def api_voices():
-    """MaryTTS-compatible /voices endpoint"""
-
-    load_voices_genders()
-
-    # [voice] [language] [gender] [tech=hmm]
-    lines = []
-
-    # Search for downloaded voices/vocoders
-    for voices_dir in voices_dirs:
-        if not voices_dir.is_dir():
-            continue
-
-        # <LANGUAGE>/<VOICE>-<TTS_SYSTEM>
-        for lang_dir in voices_dir.iterdir():
-            if (not lang_dir.is_dir()) or (lang_dir.name in VOCODER_DIR_NAMES):
-                continue
-
-            # Voice
-            voice_lang = lang_dir.name
-            for voice_model_dir in lang_dir.iterdir():
-                if not valid_voice_dir(voice_model_dir):
-                    continue
-
-                voice_name_tts = voice_model_dir.name
-                full_voice_name = f"{voice_lang}_{voice_name_tts}"
-                voice_name, tts_system = voice_name_tts.split("-", maxsplit=1)
-
-                voice_gender = "NA"  # not available
-                gender_path = voice_model_dir / "GENDER"
-
-                if gender_path.is_file():
-                    # Use GENDER file in voice directory
-                    voice_gender = gender_path.read_text().strip()
-                else:
-                    # Use value from VOICE_GENDERS file
-                    voice_gender = VOICE_GENDERS.get(full_voice_name, voice_gender)
-
-                # Repeat voice for each quality level
-                for quality in VOCODER_QUALITY:
-                    lines.append(
-                        f"{voice_name};{quality} {voice_lang} {voice_gender} {tts_system}"
-                    )
-
-    return "\n".join(sorted(lines))
-
-
-@app.route("/version", methods=["GET"])
-async def api_version():
-    """MaryTTS-compatible /version endpoint"""
-    return __version__
-
-
-# -----------------------------------------------------------------------------
-
-
-# -----------------------------------------------------------------------------
-
-_CSS_DIR = _DIR / "css"
-_IMG_DIR = _DIR / "img"
-
-
-@app.route("/")
-async def app_index():
-    """Main page."""
-    return await render_template("index.html")
-
-
-@app.route("/css/<path:filename>", methods=["GET"])
-async def css(filename) -> Response:
-    """CSS static endpoint."""
-    return await send_from_directory(_CSS_DIR, filename)
-
-
-@app.route("/img/<path:filename>", methods=["GET"])
-async def img(filename) -> Response:
-    """Image static endpoint."""
-    return await send_from_directory(_IMG_DIR, filename)
-
-
-@app.route("/wav/<path:filename>", methods=["GET"])
-async def wav(filename) -> Response:
-    """WAV audio static endpoint."""
-    return await send_from_directory(_WAV_DIR, filename)
-
-
-# Swagger UI
-api_doc(
-    app,
-    config_path=str(_DIR / "swagger.yaml"),
-    url_prefix="/openapi",
-    title="Larynx"
-)
 
 
 @app.errorhandler(Exception)

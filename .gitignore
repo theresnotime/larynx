@@ -11,3 +11,4 @@ venv/
 *.onnx
 .dockerignore
 .vscode/
+.pytest_cache/

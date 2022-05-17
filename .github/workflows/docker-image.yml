@@ -2,7 +2,7 @@ name: Docker Image CI
 concurrency: 
   group: ${{ github.head_ref || github.run_id }}
 
-on: workflow_call
+on: [ workflow_call, workflow_dispatch ]
 
 jobs:
   docker:

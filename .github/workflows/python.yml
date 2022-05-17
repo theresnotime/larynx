@@ -31,6 +31,7 @@ jobs:
         flake8 . --verbose
 
   analyze:
+    if: "contains(github.event.commits[0].message, '[analyze]')"
     needs: build
     name: Analyze
     runs-on: ubuntu-latest

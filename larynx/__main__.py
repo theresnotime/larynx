@@ -98,7 +98,7 @@ def main():
             "-m",
             "larynx.server",
             "--host",
-            "127.0.0.1",
+            str(args.daemon_host),
             "--port",
             str(args.daemon_port),
             "--pidfile",
@@ -555,6 +555,12 @@ def get_args():
         "--daemon",
         action="store_true",
         help="Connect to or run a background HTTP server for TTS functionality",
+    )
+    parser.add_argument(
+        "--daemon-host",
+        type=str,
+        default="127.0.0.1",
+        help="Address for the daemon HTTP server to listen on (default: 127.0.0.1)",
     )
     parser.add_argument(
         "--daemon-port",

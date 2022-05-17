@@ -6,6 +6,7 @@ import contextlib
 import functools
 import io
 import logging
+import os
 import signal
 import time
 import typing
@@ -219,7 +220,9 @@ async def text_to_wav(
 
     end_time = time.time()
     _LOGGER.info(
-        "Synthesized %s byte(s) in %s second(s)", len(wav_bytes), end_time - start_time
+        "Synthesized %s byte(s) in %s second(s)",
+        len(wav_bytes),
+        end_time - start_time
     )
 
     return wav_bytes
@@ -592,7 +595,10 @@ async def wav(filename) -> Response:
 
 # Swagger UI
 api_doc(
-    app, config_path=str(_DIR / "swagger.yaml"), url_prefix="/openapi", title="Larynx"
+    app,
+    config_path=str(_DIR / "swagger.yaml"),
+    url_prefix="/openapi",
+    title="Larynx"
 )
 
 
@@ -618,8 +624,9 @@ def _signal_handler(*_: typing.Any) -> None:
     """Signal shutdown to Hypercorn"""
     shutdown_event.set()
 
-
-_LOOP.add_signal_handler(signal.SIGTERM, _signal_handler)
+# Thanks Windows
+if os.name != 'nt':
+    _LOOP.add_signal_handler(signal.SIGTERM, _signal_handler)
 
 try:
     if args.pidfile:

@@ -10,17 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  dependency-review:
-    name: Dependency review
-    runs-on: ubuntu-latest
-    steps:
-      - name: 'Checkout Repository'
-        uses: actions/checkout@v3
-      - name: 'Dependency Review'
-        uses: actions/dependency-review-action@v1
-
   build:
-    needs: dependency-review
     name: Build
     runs-on: ubuntu-latest
 

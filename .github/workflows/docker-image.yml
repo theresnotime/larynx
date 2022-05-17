@@ -1,6 +1,6 @@
 name: Docker Image CI
 concurrency: 
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.head_ref || github.run_id }}
 
 on:
   push:
@@ -26,5 +26,5 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          push: false
+          push: true
           tags: theresnotime/larynx:latest

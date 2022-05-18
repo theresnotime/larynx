@@ -64,8 +64,3 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
-
-  docker:
-    needs: build
-    uses: ./.github/workflows/docker-image.yml
-        

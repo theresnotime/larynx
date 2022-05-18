@@ -1,6 +1,6 @@
 name: Python CI
 concurrency: 
-  group: ${{ github.head_ref || github.run_id }}
+  group: main
   cancel-in-progress: true
 
 on:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: Build
+    name: Build production
     runs-on: ubuntu-latest
 
     steps:
@@ -29,38 +29,8 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install --upgrade wheel setuptools flake8
         pip install -r requirements.txt
+        pip install -r requirements-dev.txt
         pip install .
     - name: Lint with flake8
       run: |
         flake8 . --verbose
-
-  analyze:
-    if: "contains(github.event.commits[0].message, '[analyze]')"
-    needs: build
-    name: Analyze
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    strategy:
-      fail-fast: true
-      matrix:
-        language: [ 'python' ]
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
-
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2

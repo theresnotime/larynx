@@ -2,7 +2,7 @@ name: Create and publish a Docker image
 concurrency: 
   group: main
 
-on: [ workflow_call, workflow_dispatch ]
+on: [ workflow_call, workflow_dispatch, release ]
 
 env:
   REGISTRY: ghcr.io

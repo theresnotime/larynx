@@ -12,3 +12,4 @@ venv/
 .dockerignore
 .vscode/
 .pytest_cache/
+*.stats

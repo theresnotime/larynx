@@ -1,11 +1,12 @@
-name: Code analysis
-concurrency: 
-  group: main
+name: "CodeQL"
 
-on: [ workflow_call, workflow_dispatch ]
-
-permissions:
-  contents: read
+on:
+  workflow_call:
+  workflow_dispatch:
+  release:
+    types: [published]
+  schedule:
+    - cron: '42 16 * * 6'
 
 jobs:
   analyze:
@@ -17,7 +18,7 @@ jobs:
       security-events: write
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         language: [ 'python' ]
 

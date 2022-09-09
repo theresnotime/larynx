@@ -1,7 +1,7 @@
 dataclasses-json~=0.5.7
-gruut[de,es,fr,it,nl,ru,sv,sw]~=2.3.2
+gruut[ar,cs,de,es,fa,fr,it,nl,ru,sv,sw]~=2.3.4
 numpy>=1.20.0
-onnxruntime>=1.6.0,<2.0
+onnxruntime>=1.12.1,<2.0
 phonemes2ids~=1.2.2
 python-pidfile~=3.0.0
 quart~=0.17.0

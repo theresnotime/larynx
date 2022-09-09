@@ -13,3 +13,4 @@ venv/
 .vscode/
 .pytest_cache/
 *.stats
+.tox/
